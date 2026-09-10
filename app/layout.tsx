@@ -19,7 +19,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className="min-h-screen">
-        <main className="mx-auto max-w-md px-4 pt-6" style={{ paddingBottom: "6.5rem" }}>
+        <main className="mx-auto max-w-md px-4 pt-6" style={{ paddingBottom: "7.5rem" }}>
           {children}
         </main>
         <NavInferior />

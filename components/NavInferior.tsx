@@ -21,7 +21,7 @@ export function NavInferior() {
       className="fixed bottom-0 left-0 right-0 z-40 border-t bg-surface"
       style={{
         borderColor: "var(--line)",
-        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 10px)",
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 22px)",
       }}
     >
       <ul className="mx-auto flex max-w-md">

@@ -3,91 +3,158 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { USUARIOS } from "@/lib/usuarios";
+
+const PIN_LARGO = 4;
 
 export default function LoginPage() {
   const router = useRouter();
   const supabase = createClient();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [usuario, setUsuario] = useState<(typeof USUARIOS)[number] | null>(null);
+  const [pin, setPin] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function elegirUsuario(u: (typeof USUARIOS)[number]) {
+    setUsuario(u);
+    setPin("");
     setError(null);
-    setLoading(true);
+  }
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+  function volver() {
+    setUsuario(null);
+    setPin("");
+    setError(null);
+  }
 
-    setLoading(false);
+  async function ingresarDigito(d: string) {
+    if (pin.length >= PIN_LARGO || loading) return;
+    const nuevo = pin + d;
+    setPin(nuevo);
 
-    if (error) {
-      setError("Correo o contraseña incorrectos.");
-      return;
+    if (nuevo.length === PIN_LARGO && usuario) {
+      setLoading(true);
+      setError(null);
+
+      const { error } = await supabase.auth.signInWithPassword({
+        email: usuario.email,
+        password: nuevo,
+      });
+
+      setLoading(false);
+
+      if (error) {
+        setError("PIN incorrecto.");
+        setPin("");
+        return;
+      }
+
+      router.push("/pedidos");
+      router.refresh();
     }
+  }
 
-    router.push("/pedidos");
-    router.refresh();
+  function borrar() {
+    setError(null);
+    setPin((p) => p.slice(0, -1));
+  }
+
+  if (!usuario) {
+    return (
+      <div className="flex min-h-[80vh] flex-col justify-center">
+        <h1 className="text-2xl font-semibold" style={{ color: "var(--primary)" }}>
+          ¿Quién eres?
+        </h1>
+        <p className="mt-1 text-sm" style={{ color: "var(--ink-soft)" }}>
+          Elige tu nombre para ingresar.
+        </p>
+
+        <div className="mt-8 flex flex-col gap-3">
+          {USUARIOS.map((u) => (
+            <button
+              key={u.email}
+              onClick={() => elegirUsuario(u)}
+              className="rounded-[var(--radius)] border bg-surface py-4 text-lg font-medium"
+              style={{ borderColor: "var(--line)" }}
+            >
+              {u.nombre}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="flex min-h-[80vh] flex-col justify-center">
-      <h1 className="text-2xl font-semibold" style={{ color: "var(--primary)" }}>
-        Iniciar sesión
+      <button
+        onClick={volver}
+        className="self-start text-sm font-medium"
+        style={{ color: "var(--ink-soft)" }}
+      >
+        ← Cambiar usuario
+      </button>
+
+      <h1 className="mt-4 text-2xl font-semibold" style={{ color: "var(--primary)" }}>
+        Hola, {usuario.nombre}
       </h1>
       <p className="mt-1 text-sm" style={{ color: "var(--ink-soft)" }}>
-        Clientes, pedidos y repartos en un solo lugar.
+        Ingresa tu PIN de {PIN_LARGO} dígitos.
       </p>
 
-      <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-4">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="email" className="text-sm font-medium">
-            Correo
-          </label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="rounded-[var(--radius)] border bg-surface px-3 py-2.5 outline-none focus:ring-2"
-            style={{ borderColor: "var(--line)" }}
+      <div className="mt-8 flex justify-center gap-3">
+        {Array.from({ length: PIN_LARGO }).map((_, i) => (
+          <span
+            key={i}
+            className="h-4 w-4 rounded-full"
+            style={{
+              background: i < pin.length ? "var(--primary)" : "var(--line)",
+            }}
           />
-        </div>
+        ))}
+      </div>
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="password" className="text-sm font-medium">
-            Contraseña
-          </label>
-          <input
-            id="password"
-            type="password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="rounded-[var(--radius)] border bg-surface px-3 py-2.5 outline-none focus:ring-2"
+      {error && (
+        <p className="mt-3 text-center text-sm" style={{ color: "var(--accent)" }}>
+          {error}
+        </p>
+      )}
+      {loading && (
+        <p className="mt-3 text-center text-sm" style={{ color: "var(--ink-soft)" }}>
+          Verificando…
+        </p>
+      )}
+
+      <div className="mx-auto mt-8 grid w-full max-w-xs grid-cols-3 gap-3">
+        {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((d) => (
+          <button
+            key={d}
+            onClick={() => ingresarDigito(d)}
+            disabled={loading}
+            className="rounded-[var(--radius)] border bg-surface py-4 text-xl font-medium disabled:opacity-50"
             style={{ borderColor: "var(--line)" }}
-          />
-        </div>
-
-        {error && (
-          <p className="text-sm" style={{ color: "var(--accent)" }}>
-            {error}
-          </p>
-        )}
-
+          >
+            {d}
+          </button>
+        ))}
+        <div />
         <button
-          type="submit"
+          onClick={() => ingresarDigito("0")}
           disabled={loading}
-          className="mt-2 rounded-[var(--radius)] py-3 font-medium text-white disabled:opacity-60"
-          style={{ background: "var(--primary)" }}
+          className="rounded-[var(--radius)] border bg-surface py-4 text-xl font-medium disabled:opacity-50"
+          style={{ borderColor: "var(--line)" }}
         >
-          {loading ? "Ingresando…" : "Ingresar"}
+          0
         </button>
-      </form>
+        <button
+          onClick={borrar}
+          disabled={loading}
+          className="rounded-[var(--radius)] border bg-surface py-4 text-sm font-medium disabled:opacity-50"
+          style={{ borderColor: "var(--line)" }}
+        >
+          Borrar
+        </button>
+      </div>
     </div>
   );
 }

@@ -7,7 +7,13 @@ App para reemplazar el cuaderno + Excel: registrar clientes, pedidos y organizar
 1. Ve a https://supabase.com y crea una cuenta (puede ser con el correo de tu mamá).
 2. "New project" → dale un nombre (ej. "mariscos-pedidos") y una contraseña de base de datos (guárdala).
 3. Cuando el proyecto esté listo, entra a **SQL Editor** → **New query**, pega todo el contenido de `supabase/schema.sql` y ejecútalo (▶). Esto crea las tablas y los datos de ejemplo.
-4. Ve a **Authentication → Users → Add user** y crea las 3 cuentas (mamá, papá, hermana) con correo y contraseña. No hace falta que confirmen correo si las creas así de "Add user" manualmente.
+4. La app usa un login por PIN (como el de IMVMED): cada persona elige su nombre y escribe un PIN de 4 dígitos en vez de correo + contraseña. Por dentro, ese PIN es la contraseña de una cuenta con un correo interno fijo. Antes de crear los usuarios:
+   - Ve a **Authentication → Sign In / Providers → Email** (o **Authentication → Policies**, el nombre exacto varía según la versión) y baja **Minimum password length** a `4`.
+   - Ve a **Authentication → Users → Add user** y crea las 3 cuentas exactamente con estos correos (están escritos así en `lib/usuarios.ts`), usando como contraseña el PIN de 4 dígitos que cada uno elija:
+     - `margarita@mariscos.local`
+     - `luz@mariscos.local`
+     - `arnoldo@mariscos.local`
+   - Marca **Auto confirm user** en cada una para que no pidan confirmar por correo (son correos inventados, no reciben nada).
 5. Ve a **Project Settings → API**. Copia:
    - **Project URL**
    - **anon public key**

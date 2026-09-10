@@ -1,32 +1,49 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { ClienteSearch } from "./ClienteSearch";
+import { ClienteFiltros } from "./ClienteFiltros";
 
 export default async function ClientesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ver?: string; q?: string }>;
+  searchParams: Promise<{ ver?: string; q?: string; ciudad?: string; sector?: string }>;
 }) {
-  const { ver, q } = await searchParams;
+  const { ver, q, ciudad, sector } = await searchParams;
   const verInactivos = ver === "inactivos";
 
   const supabase = await createClient();
-  let query = supabase
-    .from("clientes")
-    .select("*")
-    .eq("activo", !verInactivos)
-    .order("ciudad")
-    .order("sector")
-    .order("nombre");
 
-  if (q && q.trim()) {
-    const term = q.trim();
-    query = query.or(
-      `nombre.ilike.%${term}%,direccion.ilike.%${term}%,telefono.ilike.%${term}%,sector.ilike.%${term}%`
-    );
-  }
+  const [{ data: todos }, listaBase] = await Promise.all([
+    supabase.from("clientes").select("ciudad, sector"),
+    (async () => {
+      let query = supabase
+        .from("clientes")
+        .select("*")
+        .eq("activo", !verInactivos)
+        .order("ciudad")
+        .order("sector")
+        .order("nombre");
 
-  const { data: clientes } = await query;
+      if (q && q.trim()) {
+        const term = q.trim();
+        query = query.or(
+          `nombre.ilike.%${term}%,direccion.ilike.%${term}%,telefono.ilike.%${term}%,sector.ilike.%${term}%`
+        );
+      }
+      if (ciudad) query = query.eq("ciudad", ciudad);
+      if (sector) query = query.eq("sector", sector);
+
+      return query;
+    })(),
+  ]);
+
+  const clientes = listaBase.data;
+
+  const ciudades = Array.from(
+    new Set((todos ?? []).map((c) => c.ciudad).filter((v): v is string => !!v))
+  ).sort();
+  const sectores = Array.from(
+    new Set((todos ?? []).map((c) => c.sector).filter((v): v is string => !!v))
+  ).sort();
 
   const grupos = new Map<string, typeof clientes>();
   for (const c of clientes ?? []) {
@@ -34,6 +51,12 @@ export default async function ClientesPage({
     if (!grupos.has(key)) grupos.set(key, []);
     grupos.get(key)!.push(c);
   }
+
+  const paramsExtra = new URLSearchParams();
+  if (q) paramsExtra.set("q", q);
+  if (ciudad) paramsExtra.set("ciudad", ciudad);
+  if (sector) paramsExtra.set("sector", sector);
+  const extra = paramsExtra.toString();
 
   return (
     <div>
@@ -50,11 +73,11 @@ export default async function ClientesPage({
         </Link>
       </div>
 
-      <ClienteSearch />
+      <ClienteFiltros ciudades={ciudades} sectores={sectores} />
 
       <div className="mt-3 flex gap-2 text-sm">
         <Link
-          href={`/clientes${q ? `?q=${encodeURIComponent(q)}` : ""}`}
+          href={`/clientes${extra ? `?${extra}` : ""}`}
           className="rounded-full px-3 py-1 font-medium"
           style={{
             background: !verInactivos ? "var(--primary-soft)" : "transparent",
@@ -64,7 +87,7 @@ export default async function ClientesPage({
           Activos
         </Link>
         <Link
-          href={`/clientes?ver=inactivos${q ? `&q=${encodeURIComponent(q)}` : ""}`}
+          href={`/clientes?${extra ? `${extra}&` : ""}ver=inactivos`}
           className="rounded-full px-3 py-1 font-medium"
           style={{
             background: verInactivos ? "var(--primary-soft)" : "transparent",
@@ -77,8 +100,8 @@ export default async function ClientesPage({
 
       {grupos.size === 0 && (
         <p className="mt-8 text-sm" style={{ color: "var(--ink-soft)" }}>
-          {q
-            ? "No hay clientes que coincidan con la búsqueda."
+          {q || ciudad || sector
+            ? "No hay clientes que coincidan con el filtro."
             : verInactivos
               ? "No hay clientes inactivos."
               : "Todavía no hay clientes registrados."}

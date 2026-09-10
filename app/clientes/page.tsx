@@ -1,22 +1,32 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { ClienteSearch } from "./ClienteSearch";
 
 export default async function ClientesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ ver?: string }>;
+  searchParams: Promise<{ ver?: string; q?: string }>;
 }) {
-  const { ver } = await searchParams;
+  const { ver, q } = await searchParams;
   const verInactivos = ver === "inactivos";
 
   const supabase = await createClient();
-  const { data: clientes } = await supabase
+  let query = supabase
     .from("clientes")
     .select("*")
     .eq("activo", !verInactivos)
     .order("ciudad")
     .order("sector")
     .order("nombre");
+
+  if (q && q.trim()) {
+    const term = q.trim();
+    query = query.or(
+      `nombre.ilike.%${term}%,direccion.ilike.%${term}%,telefono.ilike.%${term}%,sector.ilike.%${term}%`
+    );
+  }
+
+  const { data: clientes } = await query;
 
   const grupos = new Map<string, typeof clientes>();
   for (const c of clientes ?? []) {
@@ -40,9 +50,11 @@ export default async function ClientesPage({
         </Link>
       </div>
 
+      <ClienteSearch />
+
       <div className="mt-3 flex gap-2 text-sm">
         <Link
-          href="/clientes"
+          href={`/clientes${q ? `?q=${encodeURIComponent(q)}` : ""}`}
           className="rounded-full px-3 py-1 font-medium"
           style={{
             background: !verInactivos ? "var(--primary-soft)" : "transparent",
@@ -52,7 +64,7 @@ export default async function ClientesPage({
           Activos
         </Link>
         <Link
-          href="/clientes?ver=inactivos"
+          href={`/clientes?ver=inactivos${q ? `&q=${encodeURIComponent(q)}` : ""}`}
           className="rounded-full px-3 py-1 font-medium"
           style={{
             background: verInactivos ? "var(--primary-soft)" : "transparent",
@@ -65,9 +77,11 @@ export default async function ClientesPage({
 
       {grupos.size === 0 && (
         <p className="mt-8 text-sm" style={{ color: "var(--ink-soft)" }}>
-          {verInactivos
-            ? "No hay clientes inactivos."
-            : "Todavía no hay clientes registrados."}
+          {q
+            ? "No hay clientes que coincidan con la búsqueda."
+            : verInactivos
+              ? "No hay clientes inactivos."
+              : "Todavía no hay clientes registrados."}
         </p>
       )}
 

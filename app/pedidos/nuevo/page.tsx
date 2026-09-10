@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -22,6 +22,9 @@ export default function NuevoPedidoPage() {
   const [clientes, setClientes] = useState<Cliente[]>([]);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [clienteId, setClienteId] = useState("");
+  const [busquedaCliente, setBusquedaCliente] = useState("");
+  const [listaAbierta, setListaAbierta] = useState(false);
+  const contenedorRef = useRef<HTMLDivElement>(null);
   const [items, setItems] = useState<Item[]>([{ producto_id: "", cantidad: 1 }]);
   const [notas, setNotas] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,6 +46,41 @@ export default function NuevoPedidoPage() {
   }, []);
 
   const clienteSeleccionado = clientes.find((c) => c.id === clienteId);
+
+  const clientesFiltrados = useMemo(() => {
+    const term = busquedaCliente.trim().toLowerCase();
+    if (!term) return clientes.slice(0, 20);
+    return clientes
+      .filter(
+        (c) =>
+          c.nombre.toLowerCase().includes(term) ||
+          c.sector.toLowerCase().includes(term) ||
+          c.ciudad.toLowerCase().includes(term)
+      )
+      .slice(0, 20);
+  }, [busquedaCliente, clientes]);
+
+  useEffect(() => {
+    function onClickFuera(e: MouseEvent) {
+      if (contenedorRef.current && !contenedorRef.current.contains(e.target as Node)) {
+        setListaAbierta(false);
+      }
+    }
+    document.addEventListener("mousedown", onClickFuera);
+    return () => document.removeEventListener("mousedown", onClickFuera);
+  }, []);
+
+  function elegirCliente(c: Cliente) {
+    setClienteId(c.id);
+    setBusquedaCliente(`${c.nombre} — ${c.ciudad}/${c.sector}`);
+    setListaAbierta(false);
+  }
+
+  function cambiarBusqueda(v: string) {
+    setBusquedaCliente(v);
+    setClienteId("");
+    setListaAbierta(true);
+  }
 
   const total = useMemo(() => {
     return items.reduce((sum, item) => {
@@ -117,22 +155,47 @@ export default function NuevoPedidoPage() {
       </h1>
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-5">
-        <div className="flex flex-col gap-1">
+        <div className="flex flex-col gap-1" ref={contenedorRef}>
           <label className="text-sm font-medium">Cliente</label>
-          <select
-            value={clienteId}
-            onChange={(e) => setClienteId(e.target.value)}
-            required
-            className="rounded-[var(--radius)] border bg-surface px-3 py-2.5"
-            style={{ borderColor: "var(--line)" }}
-          >
-            <option value="">Selecciona un cliente</option>
-            {clientes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nombre} — {c.ciudad}/{c.sector}
-              </option>
-            ))}
-          </select>
+          <div className="relative">
+            <input
+              value={busquedaCliente}
+              onChange={(e) => cambiarBusqueda(e.target.value)}
+              onFocus={() => setListaAbierta(true)}
+              placeholder="Escribe el nombre del cliente"
+              autoComplete="off"
+              className="w-full rounded-[var(--radius)] border bg-surface px-3 py-2.5 outline-none focus:ring-2"
+              style={{ borderColor: "var(--line)" }}
+            />
+            {listaAbierta && clientesFiltrados.length > 0 && (
+              <ul
+                className="absolute z-10 mt-1 max-h-56 w-full overflow-y-auto rounded-[var(--radius)] border bg-surface shadow-sm"
+                style={{ borderColor: "var(--line)" }}
+              >
+                {clientesFiltrados.map((c) => (
+                  <li key={c.id}>
+                    <button
+                      type="button"
+                      onClick={() => elegirCliente(c)}
+                      className="block w-full px-3 py-2.5 text-left text-sm"
+                      style={{ borderBottom: "0.5px solid var(--line)" }}
+                    >
+                      <span className="font-medium">{c.nombre}</span>
+                      <span style={{ color: "var(--ink-soft)" }}> — {c.ciudad}/{c.sector}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {listaAbierta && busquedaCliente && clientesFiltrados.length === 0 && (
+              <div
+                className="absolute z-10 mt-1 w-full rounded-[var(--radius)] border bg-surface px-3 py-2.5 text-sm"
+                style={{ borderColor: "var(--line)", color: "var(--ink-soft)" }}
+              >
+                Sin resultados
+              </div>
+            )}
+          </div>
           {clienteSeleccionado?.bloqueado && (
             <p
               className="rounded-[var(--radius)] px-3 py-2 text-sm font-medium"

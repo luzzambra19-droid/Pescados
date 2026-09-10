@@ -1,11 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
+import { ExportarRepartoButton } from "./ExportarRepartoButton";
 
 export default async function RepartoPage() {
   const supabase = await createClient();
   const { data: pedidos } = await supabase
     .from("pedidos")
     .select(
-      "id, total, pagado, estado, clientes(nombre, ciudad, sector, direccion, telefono)"
+      "id, total, pagado, estado, clientes(nombre, ciudad, sector, direccion, telefono), pedido_items(cantidad, productos(nombre, unidad))"
     )
     .in("estado", ["pendiente", "en_reparto"])
     .order("created_at");
@@ -20,12 +21,20 @@ export default async function RepartoPage() {
 
   return (
     <div>
-      <h1 className="text-xl font-semibold" style={{ color: "var(--primary)" }}>
-        Reparto de hoy
-      </h1>
-      <p className="mt-1 text-sm" style={{ color: "var(--ink-soft)" }}>
-        Pedidos pendientes y en reparto, agrupados por zona.
-      </p>
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold" style={{ color: "var(--primary)" }}>
+            Reparto de hoy
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: "var(--ink-soft)" }}>
+            Pedidos pendientes y en reparto, agrupados por zona.
+          </p>
+        </div>
+        {pedidos && pedidos.length > 0 && (
+          // @ts-expect-error -- relación anidada de Supabase
+          <ExportarRepartoButton pedidos={pedidos} />
+        )}
+      </div>
 
       {grupos.size === 0 && (
         <p className="mt-8 text-sm" style={{ color: "var(--ink-soft)" }}>

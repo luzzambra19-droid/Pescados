@@ -19,7 +19,10 @@ export function NavInferior() {
   return (
     <nav
       className="fixed bottom-0 left-0 right-0 z-40 border-t bg-surface"
-      style={{ borderColor: "var(--line)" }}
+      style={{
+        borderColor: "var(--line)",
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 10px)",
+      }}
     >
       <ul className="mx-auto flex max-w-md">
         {items.map((item) => {
@@ -28,7 +31,7 @@ export function NavInferior() {
             <li key={item.href} className="flex-1">
               <Link
                 href={item.href}
-                className="flex flex-col items-center gap-1 px-1 py-2.5 text-center text-[11px] leading-tight"
+                className="flex flex-col items-center gap-1 px-1 pt-2.5 pb-1 text-center text-[11px] leading-tight"
                 style={{
                   color: active ? "var(--primary)" : "var(--ink-soft)",
                   fontWeight: active ? 600 : 400,

@@ -9,6 +9,7 @@ export default async function PedidosPage() {
     .select(
       "id, fecha, estado, pagado, total, notas, clientes(nombre, ciudad, sector), pedido_items(cantidad, precio_unitario, productos(nombre, unidad))"
     )
+    .in("estado", ["pendiente", "en_reparto"])
     .order("fecha", { ascending: false })
     .order("created_at", { ascending: false });
 
@@ -29,7 +30,7 @@ export default async function PedidosPage() {
 
       {(!pedidos || pedidos.length === 0) && (
         <p className="mt-8 text-sm" style={{ color: "var(--ink-soft)" }}>
-          Todavía no hay pedidos registrados.
+          No hay pedidos pendientes. Los entregados quedan en Historial.
         </p>
       )}
 

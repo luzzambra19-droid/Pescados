@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const items = [
   { href: "/pedidos", label: "Pedidos" },
   { href: "/reparto", label: "Reparto" },
+  { href: "/historial", label: "Historial" },
   { href: "/clientes", label: "Clientes" },
   { href: "/productos", label: "Productos" },
 ];
@@ -27,7 +28,7 @@ export function NavInferior() {
             <li key={item.href} className="flex-1">
               <Link
                 href={item.href}
-                className="flex flex-col items-center gap-1 py-3 text-sm"
+                className="flex flex-col items-center gap-1 px-1 py-2.5 text-center text-[11px] leading-tight"
                 style={{
                   color: active ? "var(--primary)" : "var(--ink-soft)",
                   fontWeight: active ? 600 : 400,

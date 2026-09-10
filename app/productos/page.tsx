@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { NuevoProductoForm } from "./NuevoProductoForm";
+import { ProductoRow } from "./ProductoRow";
 
 export default async function ProductosPage() {
   const supabase = await createClient();
@@ -16,19 +17,7 @@ export default async function ProductosPage() {
 
       <ul className="mt-6 flex flex-col gap-2">
         {(productos ?? []).map((p) => (
-          <li
-            key={p.id}
-            className="flex items-center justify-between rounded-[var(--radius)] border bg-surface p-3"
-            style={{
-              borderColor: "var(--line)",
-              opacity: p.activo ? 1 : 0.5,
-            }}
-          >
-            <span className="font-medium">{p.nombre}</span>
-            <span className="tabular text-sm" style={{ color: "var(--ink-soft)" }}>
-              ${p.precio.toLocaleString("es-CL")} / {p.unidad}
-            </span>
-          </li>
+          <ProductoRow key={p.id} producto={p} />
         ))}
       </ul>
 
